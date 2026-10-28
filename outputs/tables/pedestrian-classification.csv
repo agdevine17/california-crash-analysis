@@ -1,0 +1,5 @@
+pedestrian_collision_type,pedestrian_involved_with,n_crashes
+FALSE,FALSE,4248936
+FALSE,TRUE,16364
+TRUE,FALSE,8721
+TRUE,TRUE,118243
