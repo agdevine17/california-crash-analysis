@@ -175,3 +175,132 @@ ggsave(
   height = 6,
   dpi = 300
 )
+
+pedestrian_halloween <- read_csv(
+  "outputs/tables/pedestrian-halloween-crashes-comparison.csv",
+  show_col_types = FALSE
+)
+
+pedestrian_weekday_comparison <- read_csv(
+  "outputs/tables/pedestrian-halloween-weekday-comparison.csv",
+  show_col_types = FALSE
+)
+
+# Graph 4: Halloween vs. other October dates
+
+p4 <- pedestrian_halloween |>
+  mutate(
+    period = if_else(
+      halloween,
+      "Halloween",
+      "Other October Days"
+    ),
+    period = factor(
+      period,
+      levels = c("Other October Days", "Halloween")
+    )
+  ) |>
+  ggplot(
+    aes(
+      x = period,
+      y = avg_daily_crashes,
+      fill = period
+    )
+  ) +
+  geom_col(width = 0.6) +
+  geom_text(
+    aes(
+      label = round(avg_daily_crashes, 1)
+    ),
+    vjust = -0.5,
+    size = 4
+  ) +
+  scale_fill_manual(
+    values = c(
+      "Other October Days" = "steelblue",
+      "Halloween" = "darkorange"
+    ),
+    guide = "none"
+  ) +
+  scale_y_continuous(
+    expand = expansion(mult = c(0, 0.12))
+  ) +
+  labs(
+    title = "Average Daily Pedestrian-Involved Crashes",
+    subtitle = "Halloween vs. Other October Dates, 2016-2025",
+    x = NULL,
+    y = "Average Number of Crashes per Day",
+    caption = "Source: California Highway Patrol CCRS"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.major.x = element_blank()
+  )
+
+ggsave(
+  "outputs/pedestrian-halloween-average.png",
+  plot = p4,
+  width = 9,
+  height = 6,
+  dpi = 300
+)
+
+# Halloween vs. comparable weekdays
+
+p5 <- ggplot(
+  pedestrian_weekday_comparison,
+  aes(
+    x = factor(year),
+    y = percent_difference,
+    fill = percent_difference > 0
+  )
+) +
+  geom_col(width = 0.7) +
+  geom_hline(
+    yintercept = 0,
+    linetype = "dashed"
+  ) +
+  geom_text(
+    aes(
+      label = paste0(
+        round(percent_difference, 1),
+        "%"
+      )
+    ),
+    vjust = if_else(
+      pedestrian_weekday_comparison$percent_difference > 0,
+      -0.5,
+      1.5
+    ),
+    size = 3.5
+  ) +
+  scale_fill_manual(
+    values = c(
+      "FALSE" = "steelblue",
+      "TRUE" = "darkorange"
+    ),
+    guide = "none"
+  ) +
+  scale_y_continuous(
+    labels = label_number(suffix = "%"),
+    expand = expansion(mult = c(0.15, 0.15))
+  ) +
+  labs(
+    title = "Halloween Pedestrian Crashes vs. Comparable Weekdays",
+    subtitle = "Percentage Difference by Year, 2016-2025",
+    x = "Year",
+    y = "Percentage Difference (%)",
+    caption = "Source: California Highway Patrol CCRS"
+  ) +
+  theme_minimal(base_size = 12) +
+  theme(
+    panel.grid.major.x = element_blank()
+  )
+
+ggsave(
+  "outputs/pedestrian-halloween-weekday-comparison.png",
+  plot = p5,
+  width = 11,
+  height = 6,
+  dpi = 300
+)
