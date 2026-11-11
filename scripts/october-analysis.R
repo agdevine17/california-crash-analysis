@@ -398,3 +398,104 @@ write_csv(
   "outputs/tables/october-half-comparison.csv"
 )
 
+# Pedestrian involved crashes on Halloween
+pedestrian_october <- crashes |>
+  filter(
+    !is.na(crash_date),
+    year >= 2016,
+    year <= 2025,
+    month == 10
+  ) |>
+  mutate(
+    pedestrian_crash =
+      coalesce(
+        collision_type_description == "VEHICLE/PEDESTRAIN",
+        FALSE
+      ) |
+      coalesce(
+        motor_vehicle_involved_with_desc == "PEDESTRIAN",
+        FALSE
+      ),
+    halloween = day(crash_date) == 31
+  ) |>
+  filter(pedestrian_crash)
+
+pedestrian_halloween <- pedestrian_october |>
+  group_by(halloween) |>
+  summarise(
+    pedestrian_crashes = n(),
+    .groups = "drop"
+  ) |>
+  mutate(
+    n_days = if_else(halloween, 10, 300),
+    avg_daily_crashes = pedestrian_crashes / n_days
+  )
+
+print(pedestrian_halloween)
+
+# Pedestrian crashes Halloween vs matching weekdays
+
+pedestrian_daily <- pedestrian_october |>
+  count(crash_date, name = "n_crashes") |>
+  complete(
+    crash_date = seq(
+      as.Date("2016-10-01"),
+      as.Date("2025-10-31"),
+      by = "day"
+    ),
+    fill = list(n_crashes = 0)
+  ) |>
+  filter(month(crash_date) == 10) |>
+  mutate(
+    year = year(crash_date),
+    weekday = wday(
+      crash_date,
+      label = TRUE,
+      abbr = TRUE
+    ),
+    halloween = day(crash_date) == 31
+  )
+
+pedestrian_halloween_weekdays <- pedestrian_daily |>
+  filter(halloween) |>
+  select(
+    year,
+    halloween_weekday = weekday,
+    halloween_crashes = n_crashes
+  )
+
+pedestrian_weekday_comparison <- pedestrian_daily |>
+  left_join(
+    pedestrian_halloween_weekdays,
+    by = "year"
+  ) |>
+  filter(
+    weekday == halloween_weekday,
+    !halloween
+  ) |>
+  group_by(
+    year,
+    halloween_weekday,
+    halloween_crashes
+  ) |>
+  summarise(
+    comparison_avg = mean(n_crashes),
+    .groups = "drop"
+  ) |>
+  mutate(
+    percent_difference = 100 *
+      (halloween_crashes - comparison_avg) /
+      comparison_avg
+  )
+
+print(pedestrian_weekday_comparison)
+
+write_csv(
+  pedestrian_weekday_comparison,
+  "outputs/tables/pedestrian-halloween-weekday-comparison.csv"
+)
+
+write_csv(
+  pedestrian_halloween,
+  "outputs/tables/pedestrian-halloween-crashes-comparison.csv"
+)
